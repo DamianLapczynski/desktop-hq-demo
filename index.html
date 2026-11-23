@@ -1823,7 +1823,7 @@
         <section class="view" id="view-brief" style="grid-template-columns:1.55fr 1fr;">
           <div class="panel">
             <div class="panel-inner" style="padding-bottom:0;">
-              <div class="panel-head"><h2>Poranny brief</h2><div style="display:flex; align-items:center; gap:12px;"><span class="panel-sub" id="br-meta">Ładowanie…</span><a id="br-open-tab" class="nx-btn ghost sm" href="#" onclick="window.open(window.__DEMO_BRIEF_URL);return false;" target="_blank" rel="noopener">Pełny ekran ↗</a></div></div>
+              <div class="panel-head"><h2>Poranny brief</h2><div style="display:flex; align-items:center; gap:12px;"><span class="panel-sub" id="br-meta">Ładowanie…</span><a id="br-open-tab" class="nx-btn ghost sm" href="demo-brief.html" target="_blank" rel="noopener">Pełny ekran ↗</a></div></div>
               <iframe id="br-frame" class="br-frame" title="Poranny brief"></iframe>
             </div>
           </div>
@@ -2949,7 +2949,7 @@
     var key = brief.fileBase + '|' + brief.date + '|' + accent;
     if (key !== lastBriefKey) {
       lastBriefKey = key;
-      frame.src = window.__DEMO_BRIEF_URL; if (0) frame.src = '/api/brief-raw?embed=1&accent=' + encodeURIComponent(accent) + '&v=' + encodeURIComponent(key);
+      frame.src = 'demo-brief.html?embed=1&accent=' + encodeURIComponent(accent) + '&v=' + encodeURIComponent(key);
     }
   }
 

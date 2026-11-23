@@ -138,7 +138,7 @@
   // ---------- Morning brief ----------
   var BRIEF = {
     ok: true, date: TODAY, dateLabel: NOW.getDate() + ' ' + MONTHS_PL[NOW.getMonth()] + ' ' + NOW.getFullYear(), fileBase: 'aktualny',
-    headline: 'A focused day: lab report in the morning, a short call after lunch, climbing in the evening.',
+    headline: 'A focused day with one hard edge: the lab report is due tomorrow, then a short portfolio call at 14:00 and climbing in the evening.',
     acts: [
       { label: '00:00–12:00', text: 'Swim, then the anatomy lecture. Use the gap before noon to finish the lab report tables.' },
       { label: '12:00–18:00', text: 'Portfolio review call at 14:00. Afterwards, conclusions section of the report.' },
@@ -159,16 +159,7 @@
     weather: { city: 'Warsaw', lat: 52.23, lon: 21.01, text: 'Cool and mostly cloudy, around 4°C in the afternoon with a light westerly wind.',
       lines: ['Cool and mostly cloudy, around 4°C.'], dayTemp: 4, minTemp: 0, sunrise: '07:12', sunset: '15:31' },
   };
-  var BRIEF_HTML = '<!doctype html><html><head><meta charset="utf-8"><style>' +
-    'body{font:15px/1.6 Inter,system-ui,sans-serif;margin:0;padding:24px 28px;background:transparent;color:#d8dde6}' +
-    'h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;opacity:.7;margin:26px 0 8px}' +
-    '.k{opacity:.6;font-size:13px}li{margin:6px 0}</style></head><body>' +
-    '<div class="k">Morning brief · demo</div><h1>' + BRIEF.headline + '</h1>' +
-    '<h2>Plan of the day</h2><ul>' + BRIEF.acts.map(function (a) { return '<li><b>' + a.label + '</b> — ' + a.text + '</li>'; }).join('') + '</ul>' +
-    '<h2>Needs attention</h2><ul>' + BRIEF.attention.map(function (a) { return '<li><b>' + a.title + '.</b> ' + a.text + '</li>'; }).join('') + '</ul>' +
-    '<h2>Weather</h2><p>' + BRIEF.weather.text + '</p>' +
-    '<h2>World</h2><ul>' + BRIEF.world.map(function (w) { return '<li><b>' + w.region + ':</b> ' + w.text + '</li>'; }).join('') + '</ul>' +
-    '<p class="k">This is a fictional brief generated for the portfolio demo.</p></body></html>';
+  // The Brief tab itself shows demo-brief.html (same layout as the real brief); this JSON feeds the other tabs.
 
   // ---------- Ideas ----------
   var IDEAS = { ok: true, ideas: [
@@ -482,7 +473,6 @@
     try { if (init && typeof init.body === 'string') body = JSON.parse(init.body); } catch (e) {}
     return new Promise(function (resolve) {
       setTimeout(function () {
-        if (path === '/api/brief-raw') { resolve(new Response(BRIEF_HTML, { headers: { 'Content-Type': 'text/html' } })); return; }
         if (method === 'GET') { var g = get(path, u.searchParams); resolve(g ? json(g) : json({ error: 'Not available in the demo.' }, 404)); return; }
         var h = POST[path];
         if (!h && /^\/api\/reconnect\//.test(path)) h = function () { return { ok: true }; };
@@ -492,18 +482,118 @@
     });
   };
 
-  // Brief tab embeds /api/brief-raw in an iframe; serve it as a blob URL instead.
-  window.__DEMO_BRIEF_URL = URL.createObjectURL(new Blob([BRIEF_HTML], { type: 'text/html' }));
+  // ---------- JARVIS (simulated) ----------
+  // The real assistant is a separate local process the dashboard reaches at ws://127.0.0.1:4330/events.
+  // Here an in-browser fake speaks the same protocol: it "connects", shows its status panels, goes
+  // through listening / thinking / speaking states and streams a reply — always the same demo notice.
+  var JV_REPLY = 'This is only a demo, so I can\'t actually do that. In the live version I\'m a voice assistant ' +
+    'running on the owner\'s computer: I answer with the context of the current tab, add events to the calendar, ' +
+    'draft e-mails, set reminders and make notes in the vault — and I ask for a yes before anything is saved.';
+  var JV_HEARD = 'What does my day look like?';
+  var jvMin = 0, jvId = 0, jvPrivate = false;
+  function jvStatus() {
+    return {
+      model: 'claude (demo)', stage: 'demo', dry_run: true, telegram: true, wake: true,
+      uptime_min: 47 + jvMin, exchanges: 3 + jvMin, tainted: [], cost_today: 0.18, threshold: 1.5,
+      usage: '', private: jvPrivate, controls: { private: true, jobs: true }, state: 'czuwa',
+      jobs: [
+        { id: 7, title: 'Summarise new notes in the Study folder', status: 'gotowe', started: iso(at(0, 7, 2)), finished: iso(at(0, 7, 4)), note: 'Study/Rotator cuff.md' },
+        { id: 8, title: 'Check the inbox for replies from people', status: 'trwa', started: new Date(Date.now() - 90e3).toISOString() },
+      ],
+      reminders: [
+        { id: 1, text: 'Pack the spare rope for Alex', due: iso(at(0, 17, 45)) },
+        { id: 2, text: 'Book the lifeguard renewal course', due: iso(at(1, 9, 0)), repeat: false },
+      ],
+      undo: [],
+      actions: [
+        { ts: iso(at(0, 7, 4)), tool: 'vault.note', outcome: 'wykonane' },
+        { ts: iso(at(0, 7, 31)), tool: 'calendar.read', outcome: 'wykonane' },
+        { ts: iso(at(0, 8, 50)), tool: 'reminder.add', outcome: 'wykonane' },
+      ],
+      notebook: ['Prefers short answers in the morning.', 'Lab report deadline is the priority this week.'],
+      reports: [], reports_open: 0,
+      proactive: [{ ts: iso(at(0, 7, 0)), rule: 'morning brief', text: 'Morning brief is ready', channel: 'telegram', outcome: 'doręczone' }],
+    };
+  }
+  function jvEntry(role, text, extra) {
+    jvId += 1;
+    var e = { type: 'chat', id: 'demo' + jvId, role: role, channel: 'dashboard', ts: new Date().toISOString(), text: text };
+    for (var k in extra || {}) e[k] = extra[k];
+    return e;
+  }
+  function FakeJarvis(url) {
+    var self = this;
+    self.url = url; self.readyState = 0; self._busy = false;
+    setTimeout(function () {
+      self.readyState = 1;
+      if (self.onopen) self.onopen(new Event('open'));
+      self._emit({ type: 'status', data: jvStatus() });
+      self._emit({ type: 'state', state: 'czuwa' });
+      self._emit({ type: 'history', items: [
+        { id: 'h1', role: 'user', channel: 'głos', ts: iso(at(0, 7, 30)), text: 'Hey Jarvis, what\'s first today?' },
+        { id: 'h2', role: 'jarvis', channel: 'głos', ts: iso(at(0, 7, 30)), text: 'Morning swim at eight, then the anatomy lecture at quarter past ten.' },
+      ] });
+    }, 350);
+    self._tick = setInterval(function () { jvMin += 0; self._emit({ type: 'status', data: jvStatus() }); }, 5000);
+  }
+  FakeJarvis.prototype._emit = function (obj) {
+    if (this.readyState !== 1 || !this.onmessage) return;
+    this.onmessage({ data: JSON.stringify(obj) });
+  };
+  FakeJarvis.prototype._answer = function () {
+    var self = this, stream = 's' + Date.now().toString(36), words = JV_REPLY.split(' '), i = 0;
+    self._busy = true;
+    self._emit({ type: 'state', state: 'myśli' });
+    self._emit({ type: 'chat_stream', stream: stream, checking: true, text: '' });
+    setTimeout(function () {
+      self._emit({ type: 'state', state: 'mówi' });
+      var t = setInterval(function () {
+        i = Math.min(words.length, i + 3);
+        self._emit({ type: 'chat_stream', stream: stream, text: words.slice(0, i).join(' ') });
+        if (i >= words.length) {
+          clearInterval(t);
+          var e = jvEntry('jarvis', JV_REPLY);
+          self._emit(e);
+          self._emit({ type: 'reply', text: JV_REPLY });
+          self._emit({ type: 'chat_stream', stream: stream, done: true });
+          jvMin += 1;
+          self._emit({ type: 'status', data: jvStatus() });
+          setTimeout(function () { self._emit({ type: 'state', state: 'czuwa' }); self._busy = false; }, 600);
+        }
+      }, 70);
+    }, 1100);
+  };
+  FakeJarvis.prototype.send = function (raw) {
+    var self = this, msg;
+    try { msg = JSON.parse(raw); } catch (e) { return; }
+    if (msg.type === 'chat') {
+      self._emit({ type: 'chat_ack', cid: msg.cid });
+      self._emit(jvEntry('user', msg.text, { cid: msg.cid, about: msg.context && msg.context.body ? (msg.context.panel || 'zakładka ' + msg.context.tab) : undefined }));
+      self._answer();
+    } else if (msg.type === 'listen') {
+      if (self._busy) return;
+      self._busy = true;
+      self._emit({ type: 'state', state: 'słucha' });
+      setTimeout(function () {
+        self._emit({ type: 'heard', text: JV_HEARD });
+        var e = jvEntry('user', JV_HEARD); e.channel = 'głos'; self._emit(e);
+        self._answer();
+      }, 1800);
+    } else if (msg.type === 'private') {
+      jvPrivate = !!msg.on;
+      self._emit({ type: 'status', data: jvStatus() });
+      self._emit({ type: 'state', state: jvPrivate ? 'prywatny' : 'czuwa' });
+    }
+  };
+  FakeJarvis.prototype.close = function () { clearInterval(this._tick); this.readyState = 3; if (this.onclose) this.onclose(new Event('close')); };
+  FakeJarvis.prototype.addEventListener = function () {};
+  FakeJarvis.prototype.removeEventListener = function () {};
 
-  // ---------- JARVIS voice socket stub (the real one runs on 127.0.0.1) ----------
   var RealWS = window.WebSocket;
   window.WebSocket = function (url, p) {
-    if (/^wss?:\/\/127\.0\.0\.1/.test(String(url))) {
-      var fake = { readyState: 3, send: function () {}, close: function () {}, addEventListener: function () {}, removeEventListener: function () {} };
-      setTimeout(function () { if (typeof fake.onerror === 'function') fake.onerror(new Event('error')); }, 10);
-      return fake;
-    }
+    if (/^wss?:\/\/127\.0\.0\.1/.test(String(url))) return new FakeJarvis(url);
     return new RealWS(url, p);
   };
   window.WebSocket.prototype = RealWS.prototype;
+  ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'].forEach(function (k, i) { window.WebSocket[k] = i; });
 })();
