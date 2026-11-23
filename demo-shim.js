@@ -7,11 +7,8 @@
 (function () {
   'use strict';
 
-  // ---------- Demo defaults: plain vault graph, no galaxy / war mode ----------
-  try {
-    localStorage.setItem('nx-layout', 'graf');
-    localStorage.setItem('nx-wojna', '0');
-  } catch (e) {}
+  // ---------- Demo defaults: galaxy view on (the toggle still works), war game off ----------
+  try { localStorage.setItem('nx-wojna', '0'); } catch (e) {}
 
   // ---------- Date helpers ----------
   var NOW = new Date();
@@ -38,7 +35,7 @@
   // ---------- Calendar ----------
   function ev(dayOffset, h1, m1, h2, m2, title, cal, loc) {
     var s = at(dayOffset, h1, m1), e = at(dayOffset, h2, m2);
-    return { id: id('ev'), title: title, time: hm(s), end: hm(e), startIso: iso(s), endIso: iso(e),
+    return { id: (typeof CTX_BY_TITLE !== 'undefined' && CTX_BY_TITLE[title]) || id('ev'), title: title, time: hm(s), end: hm(e), startIso: iso(s), endIso: iso(e),
       startDay: ymd(s), endDay: ymd(e), allDay: false, sortKey: hm(s), calendar: cal, location: loc || '' };
   }
   function allDay(dayOffset, title, cal) {
@@ -361,19 +358,52 @@
     };
   }
 
+  // ---------- Films (Studio tab) ----------
+  var FILM_ST = ['do obejrzenia', 'w trakcie', 'obejrzany'];
+  var FILMY = [
+    { id: 'f1', title: 'Arrival', year: '2016', status: 'obejrzany', rating: 9, note: 'Language as the plot device — still the best first-contact film.' },
+    { id: 'f2', title: 'The Martian', year: '2015', status: 'obejrzany', rating: 8, note: 'Problem solving as entertainment.' },
+    { id: 'f3', title: 'Moneyball', year: '2011', status: 'obejrzany', rating: 7, note: '' },
+    { id: 'f4', title: 'Interstellar', year: '2014', status: 'w trakcie', rating: null, note: '' },
+    { id: 'f5', title: 'Blade Runner', year: '1982', status: 'do obejrzenia', rating: null, note: '' },
+    { id: 'f6', title: 'Gattaca', year: '1997', status: 'do obejrzenia', rating: null, note: '' },
+  ];
+
+  // ---------- AI scout (event context) ----------
+  function ctxEvent(cid, dayOffset, h1, h2, title, cal, place, kind, headline, warning, notes, sources) {
+    return { id: cid, title: title, start: iso(at(dayOffset, h1, 0)), end: iso(at(dayOffset, h2, 0)), allDay: false, calendar: cal,
+      place: place, kind: kind, headline: headline, warning: warning || '', notes: notes, sources: sources };
+  }
+  var EVENT_CTX = { ok: true, generatedAt: iso(at(0, 6, 0)), stale: false, horizonDays: 14, stats: { scanned: 9, enriched: 3, skipped: 6 }, events: [
+    ctxEvent('ctx1', 0, 18, 20, 'Climbing with friends', 'Personal', { name: 'Boulder Lab', lat: 52.23, lon: 21.01 }, 'sport',
+      'Evening bouldering session — new problems were set on the overhang wall this week.', '',
+      ['Bring the spare rope Alex asked about.', 'Warm up shoulders first: lab report day means a lot of sitting.', 'Gym closes at 22:00.'],
+      [{ label: 'Boulder Lab — opening hours', url: 'https://example.com/boulder-lab' }]),
+    ctxEvent('ctx2', 5, 8, 16, 'Hiking: Ridge Trail', 'Personal', { name: 'Ridge Trail trailhead', lat: 49.23, lon: 19.98 }, 'gory',
+      '14 km loop with 900 m of ascent; the upper section is exposed to wind.', 'Ice possible on the north-facing descent after 14:00.',
+      ['Start before 8:30 to be off the ridge by early afternoon.', 'Microspikes recommended for the descent.', 'Last bus from the trailhead leaves at 17:10.'],
+      [{ label: 'Trail conditions report', url: 'https://example.com/trail' }, { label: 'Mountain weather', url: 'https://example.com/mountain-weather' }]),
+    ctxEvent('ctx3', 3, 9, 10, 'Dentist', 'Personal', { name: 'Smile Clinic', lat: 52.24, lon: 21.02 }, 'zdrowie',
+      'Routine check-up and cleaning.', '',
+      ['Bring the insurance card.', 'Clinic asks to arrive 10 minutes early.'],
+      [{ label: 'Smile Clinic', url: 'https://example.com/clinic' }]),
+  ] };
+  // Keep the calendar entries and the scout cards on the same ids, so "✦ AI" markers on Today link up.
+  var CTX_BY_TITLE = {}; EVENT_CTX.events.forEach(function (e) { CTX_BY_TITLE[e.title] = e.id; });
+
   // ---------- Dashboard payload ----------
   function dashboard() {
     var doneSeries = [];
     for (var i = 6; i >= 0; i--) { var d = addDays(NOW, -i); doneSeries.push({ day: DOW[d.getDay()], date: ymd(d), count: [2, 4, 1, 3, 5, 2, 3][i] }); }
     return {
       calendar: buildCalendar(), tasks: TASKS, gmail: GMAIL, brief: BRIEF, ideas: IDEAS, finance: FINANCE, pomysly: POMYSLY,
-      filmy: { ok: true, filmy: [] }, praca: pracaBlock(),
+      filmy: { ok: true, filmy: FILMY }, praca: pracaBlock(),
       memoryLog: { ok: true, entries: [
         { date: TODAY, text: 'Demo: added the portfolio version of the dashboard.', scope: 'Dashboard · MEMORY.md' },
         { date: ymd(addDays(NOW, -3)), text: 'Moved the brief into an embedded tab.', scope: 'Dashboard · MEMORY.md' },
       ] },
       portfolio: PORTFOLIO,
-      eventContext: { ok: true, generatedAt: new Date().toISOString(), stale: false, horizonDays: 14, stats: { scanned: 9, enriched: 0, skipped: 9 }, events: [] },
+      eventContext: EVENT_CTX,
       projekty: { ok: true, projekty: PROJEKTY }, wydatki: WYDATKI,
       countdowns: [{ name: 'Exam session', date: ymd(addDays(NOW, 45)), days: 45 }, { name: 'Ski trip', date: ymd(addDays(NOW, 74)), days: 74 }],
       doneSeries: doneSeries, generatedAt: new Date().toISOString(), cached: false,
@@ -436,7 +466,17 @@
     },
     '/api/tts': function () { return { ok: false, error: 'Text-to-speech is disabled in the demo.' }; },
     '/api/claude-login': function () { return { ok: false, error: 'Not available in the demo.' }; },
-    '/api/portfolio/import': function () { return { ok: false, error: 'Import is disabled in the demo.' }; },
+    '/api/portfolio/import': function () {
+      return { ok: true, summary: { accounts: ['Standard', 'IKE'], positionsNew: 1, positionsUpdated: 2, positionsUnchanged: 4, positionsTotal: 7,
+        cashOpsNew: 2, cashOpsSkipped: 14, cashOpsTotal: 16 }, demo: 'Nothing is stored in the demo.' };
+    },
+    '/api/film/add': function (b) { var f = { id: id('f'), title: b.title || 'Untitled', year: b.year || '', status: 'do obejrzenia', rating: null, note: '' }; FILMY.unshift(f); return { ok: true, id: f.id, undo: 'demo' }; },
+    '/api/film/status': function (b) { var f = FILMY.find(function (x) { return x.id === b.id; }); if (f) f.status = FILM_ST[(FILM_ST.indexOf(f.status) + 1) % 3]; return { ok: true, status: f && f.status, undo: 'demo' }; },
+    '/api/film/review': function (b) {
+      var f = FILMY.find(function (x) { return x.id === b.id; });
+      if (f) { if (b.clear) { f.rating = null; f.note = ''; } else { f.rating = Number(b.rating) || null; f.note = b.note || ''; f.status = 'obejrzany'; } }
+      return { ok: true, undo: 'demo' };
+    },
     '/api/portfolio/settings': function () { return { ok: true }; },
   };
   function get(path, q) {
@@ -504,12 +544,12 @@
         { id: 1, text: 'Pack the spare rope for Alex', due: iso(at(0, 17, 45)) },
         { id: 2, text: 'Book the lifeguard renewal course', due: iso(at(1, 9, 0)), repeat: false },
       ],
-      undo: [],
+      undo: (typeof jvUndo !== 'undefined' ? jvUndo : []).filter(function (u) { return Date.now() - new Date(u.at) < 600e3; }),
       actions: [
         { ts: iso(at(0, 7, 4)), tool: 'vault.note', outcome: 'wykonane' },
         { ts: iso(at(0, 7, 31)), tool: 'calendar.read', outcome: 'wykonane' },
         { ts: iso(at(0, 8, 50)), tool: 'reminder.add', outcome: 'wykonane' },
-      ],
+      ].concat(typeof jvActions !== 'undefined' ? jvActions : []),
       notebook: ['Prefers short answers in the morning.', 'Lab report deadline is the priority this week.'],
       reports: [], reports_open: 0,
       proactive: [{ ts: iso(at(0, 7, 0)), rule: 'morning brief', text: 'Morning brief is ready', channel: 'telegram', outcome: 'doręczone' }],
@@ -540,6 +580,52 @@
     if (this.readyState !== 1 || !this.onmessage) return;
     this.onmessage({ data: JSON.stringify(obj) });
   };
+  // Requests that would change something (calendar, reminder, mail, note) go through the same
+  // "ask for a yes first" flow as the real assistant, then end in a demo notice and an undo entry.
+  var JV_ACTION = /\b(add|dodaj|remind|przypomnij|note|notat|zapisz|calendar|kalendarz|e-?mail|mail|wyślij|send|book|umów|schedule|zaplanuj)/i;
+  var jvPending = null, jvUndo = [], jvActions = [];
+  FakeJarvis.prototype._ask = function (text) {
+    var self = this;
+    self._busy = true;
+    self._emit({ type: 'state', state: 'myśli' });
+    setTimeout(function () {
+      jvPending = { token: 't' + Date.now().toString(36), text: text };
+      self._emit({ type: 'pending', token: jvPending.token, question: 'Shall I do this: “' + String(text).slice(0, 90) + '”? (demo — nothing will be saved)' });
+      self._say('Before I change anything I always ask for your OK — use Yes or No above. This is only a demo, so either way nothing real will be saved.');
+    }, 900);
+  };
+  FakeJarvis.prototype._decide = function (yes) {
+    var self = this, p = jvPending;
+    jvPending = null;
+    self._emit({ type: 'pending', token: null, question: '' });
+    if (!p) return;
+    if (yes) {
+      var uid = Date.now();
+      jvUndo.push({ id: uid, label: String(p.text).slice(0, 60), at: new Date().toISOString() });
+      jvActions.push({ ts: new Date().toISOString(), tool: 'demo.action', outcome: 'próba' });
+      self._say('Done — in the demo nothing was actually written. In the live version the change would now be in your calendar or vault, with 10 minutes to undo it.');
+    } else {
+      jvActions.push({ ts: new Date().toISOString(), tool: 'demo.action', outcome: 'odrzucone' });
+      self._say('OK, cancelled. (This is only a demo.)');
+    }
+  };
+  FakeJarvis.prototype._say = function (reply) {
+    var self = this, stream = 's' + Date.now().toString(36), words = reply.split(' '), i = 0;
+    self._busy = true;
+    self._emit({ type: 'state', state: 'mówi' });
+    var t = setInterval(function () {
+      i = Math.min(words.length, i + 3);
+      self._emit({ type: 'chat_stream', stream: stream, text: words.slice(0, i).join(' ') });
+      if (i >= words.length) {
+        clearInterval(t);
+        self._emit(jvEntry('jarvis', reply));
+        self._emit({ type: 'reply', text: reply });
+        self._emit({ type: 'chat_stream', stream: stream, done: true });
+        self._emit({ type: 'status', data: jvStatus() });
+        setTimeout(function () { self._emit({ type: 'state', state: 'czuwa' }); self._busy = false; }, 600);
+      }
+    }, 70);
+  };
   FakeJarvis.prototype._answer = function () {
     var self = this, stream = 's' + Date.now().toString(36), words = JV_REPLY.split(' '), i = 0;
     self._busy = true;
@@ -569,7 +655,16 @@
     if (msg.type === 'chat') {
       self._emit({ type: 'chat_ack', cid: msg.cid });
       self._emit(jvEntry('user', msg.text, { cid: msg.cid, about: msg.context && msg.context.body ? (msg.context.panel || 'zakładka ' + msg.context.tab) : undefined }));
-      self._answer();
+      if (JV_ACTION.test(msg.text)) self._ask(msg.text); else self._answer();
+    } else if (msg.type === 'answer') {
+      self._decide(!!msg.yes);
+    } else if (msg.type === 'undo') {
+      jvUndo = jvUndo.filter(function (u) { return u.id !== msg.id; });
+      jvActions.push({ ts: new Date().toISOString(), tool: 'demo.action', outcome: 'cofnięte' });
+      self._emit({ type: 'status', data: jvStatus() });
+      self._say('Undone. (Demo — there was nothing to undo for real.)');
+    } else if (msg.type === 'job_cancel') {
+      self._say('Cancelled the background job. (This is only a demo.)');
     } else if (msg.type === 'listen') {
       if (self._busy) return;
       self._busy = true;
