@@ -17,9 +17,6 @@ The real version is a local Node/Express app that talks to Google Calendar and G
 - **Skarbiec** (Finance): budget vs. actual, upcoming payments, savings goals, quick expense entry.
 - **Systemy**: health of data sources and a vault hygiene check.
 - **J.A.R.V.I.S.**: the voice assistant's console — live state, background jobs, reminders, action log, notebook. Chat with it (or press J on any tab): it thinks, streams a reply, asks for a yes before any change and offers undo. In the demo every answer says it is only a demo.
-- **Holoprojekcje**: board of content ideas moving from draft to recording to published.
-- **Studio**: general ideas inbox and a film list with ratings and reviews.
-- **Portfel**: investment tracker — contributions vs. the yearly tax-free limit, open and closed positions, broker export import.
 
 The local version also has a strategy game played on the galaxy map; it is not part of this demo.
 
