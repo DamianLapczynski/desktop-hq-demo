@@ -1996,9 +1996,9 @@
               <div class="fin-pill-row" id="wb-track-row" style="margin-top:2px;">
                 <button class="fin-pill active" data-wb-track="zdalna" type="button">Praca zdalna</button>
                 <button class="fin-pill" data-wb-track="basen" type="button">Basen · instruktor / ratownik</button>
-                <button class="fin-pill" data-wb-track="wroclaw" type="button">Wrocław · etat pn–pt</button>
-                <button class="fin-pill" data-wb-track="hybryda" type="button">Hybrydowo · Wrocław, Legnica</button>
-                <button class="fin-pill" data-wb-track="legnica" type="button">Legnica · etat pn–pt</button>
+                <button class="fin-pill" data-wb-track="wroclaw" type="button">Miasto A · etat pn–pt</button>
+                <button class="fin-pill" data-wb-track="hybryda" type="button">Hybrydowo · Miasto A, Miasto B</button>
+                <button class="fin-pill" data-wb-track="legnica" type="button">Miasto B · etat pn–pt</button>
               </div>
               <div class="panel-sub" id="wb-track-sub">Kolejność wg terminu, nie tieru · liczone od dzisiejszej daty przy każdym pobraniu</div>
               <div class="panel-body" id="wb-queue-body"><div class="muted">Ładowanie…</div></div>
@@ -3978,7 +3978,7 @@
   }
 
   // Pogoda w tle = stan „teraz" z open-meteo (bez klucza, to samo źródło co pogoda wydarzeń) dla
-  // współrzędnych z briefu, a bez nich dla Legnicy. Bez odpowiedzi: neutralne drobinki, nic zmyślonego.
+  // współrzędnych z briefu, a bez nich dla domyślnego miasta. Bez odpowiedzi: neutralne drobinki, nic zmyślonego.
   var FX_WX = { code: null, day: 1, wind: 0 };
   function fxWeatherBuild() {
     var el = document.querySelector('.fx-pogoda'); if (!el) return;
@@ -9489,21 +9489,21 @@
   var WB_TRACKS = {
     zdalna: { label: 'Praca zdalna', sub: 'Kolejność wg terminu, nie tieru · liczone od dzisiejszej daty przy każdym pobraniu',
       empty: 'Kolejka pusta — wszystko, co przechodzi filtr, zostało wysłane.' },
-    basen: { label: 'Basen · instruktor / ratownik', sub: 'Legnica · Wrocław · Lubin · stacjonarnie · kolejność wg terminu',
-      empty: 'Brak ofert z basenów w kolejce. Codzienny przegląd szuka ich w Legnicy, Wrocławiu i Lubinie.',
+    basen: { label: 'Basen · instruktor / ratownik', sub: 'Miasto A · Miasto B · Miasto C · stacjonarnie · kolejność wg terminu',
+      empty: 'Brak ofert z basenów w kolejce. Codzienny przegląd szuka ich w miastach A, B i C.',
       naglowek: 'Ścieżka basenowa — instruktor pływania / ratownik, stacjonarnie', sekcja: 'Ścieżka stacjonarna',
       kryt: 'kryteriaBasen', grupa: 'grupaBasen' },
-    wroclaw: { label: 'Wrocław · etat pn–pt', sub: 'Wrocław · stacjonarnie · pełny etat pn–pt · kolejność wg terminu',
-      empty: 'Brak ofert z Wrocławia w kolejce. Codzienny przegląd szuka etatów pn–pt na miejscu we Wrocławiu.',
-      naglowek: 'Ścieżka Wrocław — etat stacjonarny pn–pt', sekcja: 'Ścieżka Wrocław',
+    wroclaw: { label: 'Miasto A · etat pn–pt', sub: 'Miasto A · stacjonarnie · pełny etat pn–pt · kolejność wg terminu',
+      empty: 'Brak ofert z Miasta A w kolejce. Codzienny przegląd szuka etatów pn–pt na miejscu w Mieście A.',
+      naglowek: 'Ścieżka Miasto A — etat stacjonarny pn–pt', sekcja: 'Ścieżka Miasto A',
       kryt: 'kryteriaWroclaw', grupa: 'grupaWroclaw' },
-    hybryda: { label: 'Hybrydowo · Wrocław, Legnica', sub: 'Praca hybrydowa z biurem we Wrocławiu albo w Legnicy · pełny etat pn–pt · kolejność wg terminu',
-      empty: 'Brak ofert hybrydowych w kolejce. Codzienny przegląd szuka ich we Wrocławiu i w Legnicy, osobno od etatów na miejscu.',
-      naglowek: 'Ścieżka hybrydowa — Wrocław i Legnica', sekcja: 'Ścieżka hybrydowa',
+    hybryda: { label: 'Hybrydowo · Miasto A, Miasto B', sub: 'Praca hybrydowa z biurem w Mieście A albo w Mieście B · pełny etat pn–pt · kolejność wg terminu',
+      empty: 'Brak ofert hybrydowych w kolejce. Codzienny przegląd szuka ich w Mieście A i w Mieście B, osobno od etatów na miejscu.',
+      naglowek: 'Ścieżka hybrydowa — Miasto A i Miasto B', sekcja: 'Ścieżka hybrydowa',
       kryt: 'kryteriaHybryda', grupa: 'grupaHybryda' },
-    legnica: { label: 'Legnica · etat pn–pt', sub: 'Legnica i najbliższe okolice · na miejscu · pełny etat pn–pt · kolejność wg terminu',
-      empty: 'Brak ofert z Legnicy w kolejce. Codzienny przegląd szuka etatów pn–pt w Legnicy.',
-      naglowek: 'Ścieżka Legnica — etat pn–pt', sekcja: 'Ścieżka Legnica',
+    legnica: { label: 'Miasto B · etat pn–pt', sub: 'Miasto B i najbliższe okolice · na miejscu · pełny etat pn–pt · kolejność wg terminu',
+      empty: 'Brak ofert z Miasta B w kolejce. Codzienny przegląd szuka etatów pn–pt w Mieście B.',
+      naglowek: 'Ścieżka Miasto B — etat pn–pt', sekcja: 'Ścieżka Miasto B',
       kryt: 'kryteriaLegnica', grupa: 'grupaLegnica' },
   };
   var wbTrack = 'zdalna';
